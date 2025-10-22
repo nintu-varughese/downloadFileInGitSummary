@@ -1,8 +1,10 @@
 name: Playwright Tests
 
-# Run manually instead of on push/pull request
 on:
-  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
 
 jobs:
   test:
