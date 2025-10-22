@@ -40,7 +40,7 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-      # Zip only the downloaded files and check ZIP creation
+      # Zip only the downloaded files and set output using environment file (new syntax)
       - name: Zip downloaded files
         id: zip_downloaded_files
         if: ${{ !cancelled() }}
@@ -53,13 +53,13 @@ jobs:
             cd .artifacts
             zip -r downloadFile.zip downloadFile
             if [ -f "$ZIP_FILE" ]; then
-              echo "::set-output name=zip_created::true"
+              echo "zip_created=true" >> $GITHUB_OUTPUT
             else
-              echo "::set-output name=zip_created::false"
+              echo "zip_created=false" >> $GITHUB_OUTPUT
             fi
           else
             echo "No downloaded files found"
-            echo "::set-output name=zip_created::false"
+            echo "zip_created=false" >> $GITHUB_OUTPUT
           fi
 
       # Create a release before uploading assets
