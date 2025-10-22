@@ -42,8 +42,11 @@ jobs:
 
       # Zip only the downloaded files
       - name: Zip downloaded files
+        id: zip_downloaded_files
         if: ${{ !cancelled() }}
         run: |
+          echo "Contents of .artifacts/downloadFile before zip:"
+          ls -al .artifacts/downloadFile || echo "Directory not found"
           DOWNLOAD_DIR=".artifacts/downloadFile"
           ZIP_FILE=".artifacts/downloadFile.zip"
           if [ -d "$DOWNLOAD_DIR" ]; then
@@ -67,6 +70,7 @@ jobs:
 
       # Upload the zipped downloaded files as a release asset
       - name: Upload downloaded files to Release
+        if: ${{ !cancelled() && steps.zip_downloaded_files.conclusion == 'success' && (exists('.artifacts/downloadFile.zip')) }}
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -77,8 +81,9 @@ jobs:
           asset_content_type: application/zip
 
       # Also upload zipped downloaded files as workflow artifact for easy access
-      - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() && (steps.zip_downloaded_files.outcome == 'success') }}
+      - name: Upload downloaded files as artifact
+        if: ${{ !cancelled() && steps.zip_downloaded_files.conclusion == 'success' && (exists('.artifacts/downloadFile.zip')) }}
+        uses: actions/upload-artifact@v4
         with:
           name: downloaded-files
           path: .artifacts/downloadFile.zip
