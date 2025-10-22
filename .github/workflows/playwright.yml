@@ -63,31 +63,6 @@ jobs:
           else
             echo "No downloaded files found"
             echo "zip_created=false" >> $GITHUB_OUTPUT
-          fi
-
-      # Create a release
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v1.0.0
-          release_name: Release v1.0.0
-          draft: false
-          prerelease: false
-
-      # Upload the zipped downloaded files as a release asset
-      - name: Upload downloaded files to Release
-        if: ${{ !cancelled() && steps.zip_downloaded_files.outputs.zip_created == 'true' }}
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: .artifacts/downloadFile.zip
-          asset_name: downloadFile.zip
-          asset_content_type: application/zip
 
       # Upload zipped downloaded files as workflow artifact
       - name: Upload downloaded files as artifact
@@ -103,4 +78,4 @@ jobs:
         if: ${{ !cancelled() && steps.zip_downloaded_files.outputs.zip_created == 'true' }}
         run: |
           echo "### Downloaded Files" >> $GITHUB_STEP_SUMMARY
-          echo "You can download the ZIP file from the Artifacts section above or from the GitHub Release assets." >> $GITHUB_STEP_SUMMARY
+          echo "You can download the ZIP file from the Artifacts section above." >> $GITHUB_STEP_SUMMARY
