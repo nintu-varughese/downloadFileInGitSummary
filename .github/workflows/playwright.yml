@@ -12,21 +12,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout code
       - uses: actions/checkout@v4
-      
+
+      # Setup Node.js
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-      
+
+      # Install dependencies
       - name: Install dependencies
         run: npm ci
-      
+
+      # Install Playwright browsers
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
-      
+
+      # Run Playwright tests
       - name: Run Playwright tests
         run: npx playwright test
 
+      # Upload Playwright HTML report
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
@@ -34,8 +40,8 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
+      # Zip only the downloaded files
       - name: Zip downloaded files
-        id: zip_downloaded_files
         if: ${{ !cancelled() }}
         run: |
           DOWNLOAD_DIR=".artifacts/downloadFile"
@@ -47,19 +53,20 @@ jobs:
             echo "No downloaded files found"
           fi
 
+      # Create a release before uploading assets
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v1.0.0
+          tag_name: v1.0.0  # Change or parameterize as needed
           release_name: Release v1.0.0
           draft: false
           prerelease: false
 
+      # Upload the zipped downloaded files as a release asset
       - name: Upload downloaded files to Release
-        if: ${{ !cancelled() && steps.zip_downloaded_files.conclusion == 'success' && -f .artifacts/downloadFile.zip }}
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -69,13 +76,15 @@ jobs:
           asset_name: downloadFile.zip
           asset_content_type: application/zip
 
+      # Also upload zipped downloaded files as workflow artifact for easy access
       - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() && steps.zip_downloaded_files.conclusion == 'success' }}
+        if: ${{ !cancelled() && (steps.zip_downloaded_files.outcome == 'success') }}
         with:
           name: downloaded-files
           path: .artifacts/downloadFile.zip
           retention-days: 30
 
+      # Add the ZIP file reference to GitHub Actions summary
       - name: Add downloaded files to summary
         if: ${{ !cancelled() }}
         run: |
