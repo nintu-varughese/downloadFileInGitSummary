@@ -67,4 +67,4 @@ jobs:
         if: ${{ !cancelled() && -f .artifacts/downloadFile.zip }}
         run: |
           echo "### Downloaded Files" >> $GITHUB_STEP_SUMMARY
-          echo "- [Download Files ZIP](./.artifacts/downloadFile.zip)" >> $GITHUB_STEP_SUMMARY
+          echo "You can download the ZIP file from the Artifacts section above." >> $GITHUB_STEP_SUMMARY
