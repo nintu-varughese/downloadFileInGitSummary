@@ -53,18 +53,24 @@ jobs:
             echo "No downloaded files found"
           fi
 
-      # Upload the zipped downloaded files as artifact
+      # Upload the zipped downloaded files as artifact (file existence handled in step)
       - name: Upload downloaded files
-        if: ${{ !cancelled() && -f .artifacts/downloadFile.zip }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: downloaded-files
-          path: .artifacts/downloadFile.zip
-          retention-days: 30
-
-      # Add the ZIP file reference to GitHub Actions summary
-      - name: Add downloaded files to summary
-        if: ${{ !cancelled() && -f .artifacts/downloadFile.zip }}
+        if: ${{ !cancelled() }}
         run: |
-          echo "### Downloaded Files" >> $GITHUB_STEP_SUMMARY
-          echo "You can download the ZIP file from the Artifacts section above." >> $GITHUB_STEP_SUMMARY
+          if [ -f .artifacts/downloadFile.zip ]; then
+            echo "Uploading ZIP file"
+            gh release upload latest .artifacts/downloadFile.zip
+          else
+            echo "No ZIP file to upload"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Add the ZIP file reference to GitHub Actions summary (file existence handled in step)
+      - name: Add downloaded files to summary
+        if: ${{ !cancelled() }}
+        run: |
+          if [ -f .artifacts/downloadFile.zip ]; then
+            echo "### Downloaded Files" >> $GITHUB_STEP_SUMMARY
+            echo "You can download the ZIP file from the Artifacts section above." >> $GITHUB_STEP_SUMMARY
+          fi
