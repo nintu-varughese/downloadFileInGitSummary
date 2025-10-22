@@ -53,24 +53,42 @@ jobs:
             echo "No downloaded files found"
           fi
 
-      # Upload the zipped downloaded files as artifact (file existence handled in step)
-      - name: Upload downloaded files
-        if: ${{ !cancelled() }}
-        run: |
-          if [ -f .artifacts/downloadFile.zip ]; then
-            echo "Uploading ZIP file"
-            gh release upload latest .artifacts/downloadFile.zip
-          else
-            echo "No ZIP file to upload"
-          fi
+      # Create a release before uploading assets
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v1.0.0  # Change or parameterize as needed
+          release_name: Release v1.0.0
+          draft: false
+          prerelease: false
 
-      # Add the ZIP file reference to GitHub Actions summary (file existence handled in step)
+      # Upload the zipped downloaded files as a release asset
+      - name: Upload downloaded files to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: .artifacts/downloadFile.zip
+          asset_name: downloadFile.zip
+          asset_content_type: application/zip
+
+      # Also upload zipped downloaded files as workflow artifact for easy access
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() && (steps.zip_downloaded_files.outcome == 'success') }}
+        with:
+          name: downloaded-files
+          path: .artifacts/downloadFile.zip
+          retention-days: 30
+
+      # Add the ZIP file reference to GitHub Actions summary
       - name: Add downloaded files to summary
         if: ${{ !cancelled() }}
         run: |
           if [ -f .artifacts/downloadFile.zip ]; then
             echo "### Downloaded Files" >> $GITHUB_STEP_SUMMARY
-            echo "You can download the ZIP file from the Artifacts section above." >> $GITHUB_STEP_SUMMARY
+            echo "You can download the ZIP file from the Artifacts section above or from the GitHub Release assets." >> $GITHUB_STEP_SUMMARY
           fi
