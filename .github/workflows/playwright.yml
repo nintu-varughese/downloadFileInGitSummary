@@ -40,7 +40,7 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-      # Zip only the downloaded files
+      # Zip only the downloaded files and check ZIP creation
       - name: Zip downloaded files
         id: zip_downloaded_files
         if: ${{ !cancelled() }}
@@ -52,8 +52,14 @@ jobs:
           if [ -d "$DOWNLOAD_DIR" ]; then
             cd .artifacts
             zip -r downloadFile.zip downloadFile
+            if [ -f "$ZIP_FILE" ]; then
+              echo "::set-output name=zip_created::true"
+            else
+              echo "::set-output name=zip_created::false"
+            fi
           else
             echo "No downloaded files found"
+            echo "::set-output name=zip_created::false"
           fi
 
       # Create a release before uploading assets
@@ -63,14 +69,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v1.0.0  # Change or parameterize as needed
+          tag_name: v1.0.0
           release_name: Release v1.0.0
           draft: false
           prerelease: false
 
-      # Upload the zipped downloaded files as a release asset
+      # Upload the zipped downloaded files as a release asset only if ZIP was created
       - name: Upload downloaded files to Release
-        if: ${{ !cancelled() && steps.zip_downloaded_files.conclusion == 'success' && (exists('.artifacts/downloadFile.zip')) }}
+        if: ${{ !cancelled() && steps.zip_downloaded_files.outputs.zip_created == 'true' }}
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -80,20 +86,18 @@ jobs:
           asset_name: downloadFile.zip
           asset_content_type: application/zip
 
-      # Also upload zipped downloaded files as workflow artifact for easy access
+      # Also upload zipped downloaded files as workflow artifact if ZIP was created
       - name: Upload downloaded files as artifact
-        if: ${{ !cancelled() && steps.zip_downloaded_files.conclusion == 'success' && (exists('.artifacts/downloadFile.zip')) }}
+        if: ${{ !cancelled() && steps.zip_downloaded_files.outputs.zip_created == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: downloaded-files
           path: .artifacts/downloadFile.zip
           retention-days: 30
 
-      # Add the ZIP file reference to GitHub Actions summary
+      # Add the ZIP file reference to GitHub Actions summary only if ZIP was created
       - name: Add downloaded files to summary
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.zip_downloaded_files.outputs.zip_created == 'true' }}
         run: |
-          if [ -f .artifacts/downloadFile.zip ]; then
-            echo "### Downloaded Files" >> $GITHUB_STEP_SUMMARY
-            echo "You can download the ZIP file from the Artifacts section above or from the GitHub Release assets." >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "### Downloaded Files" >> $GITHUB_STEP_SUMMARY
+          echo "You can download the ZIP file from the Artifacts section above or from the GitHub Release assets." >> $GITHUB_STEP_SUMMARY
