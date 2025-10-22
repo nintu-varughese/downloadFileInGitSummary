@@ -4,24 +4,56 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
-    - name: Install dependencies
-      run: npm ci
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
-    - name: Run Playwright tests
-      run: npx playwright test
-    - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: npx playwright test
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Zip downloaded files
+        if: ${{ !cancelled() }}
+        run: |
+          DOWNLOAD_DIR=".artifacts/downloadFile"
+          ZIP_FILE=".artifacts/downloadFile.zip"
+          if [ -d "$DOWNLOAD_DIR" ]; then
+            cd .artifacts
+            zip -r downloadFile.zip downloadFile
+          else
+            echo "No downloaded files found"
+          fi
+
+      - name: Upload downloaded files
+        if: ${{ !cancelled() && -f .artifacts/downloadFile.zip }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: downloaded-files
+          path: .artifacts/downloadFile.zip
+          retention-days: 30
+
+      - name: Add downloaded files to summary
+        if: ${{ !cancelled() && -f .artifacts/downloadFile.zip }}
+        run: |
+          echo "### Downloaded Files" >> $GITHUB_STEP_SUMMARY
+          echo "- [Download Files ZIP](./.artifacts/downloadFile.zip)" >> $GITHUB_STEP_SUMMARY
